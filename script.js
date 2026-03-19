@@ -12,42 +12,54 @@ let isGameOver = false;
 
 /* ===== SHAPES ===== */
 const SHAPES = [
-  [[1,1,1,1]],
-  [[1,1],[1,1]],
-  [[0,1,0],[1,1,1]],
-  [[1,1,0],[0,1,1]],
-  [[0,1,1],[1,1,0]],
-  [[1,0,0],[1,1,1]],
-  [[0,0,1],[1,1,1]]
+  {id:"I", shape:[[1,1,1,1]]},
+  {id:"O", shape:[[1,1],[1,1]]},
+  {id:"T", shape:[[0,1,0],[1,1,1]]},
+  {id:"S", shape:[[1,1,0],[0,1,1]]},
+  {id:"Z", shape:[[0,1,1],[1,1,0]]},
+  {id:"L", shape:[[1,0,0],[1,1,1]]},
+  {id:"J", shape:[[0,0,1],[1,1,1]]}
 ];
 
 const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744","#ff9100","#2979ff"];
 
-/* ===== 7 BAG ===== */
+/* ===== TRUE 7-BAG ===== */
 let bag = [];
+let lastId = null;
 
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
+function refillBag(){
+  bag = [...SHAPES];
+  for(let i=bag.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
+    [bag[i],bag[j]]=[bag[j],bag[i]];
   }
 }
 
-function getNextShape(){
-  if(bag.length===0){
-    bag = SHAPES.map(s => s.map(r=>[...r]));
-    shuffle(bag);
+function getNextPiece(){
+  if(bag.length === 0){
+    refillBag();
   }
-  return bag.pop();
+
+  let next = bag.pop();
+
+  // ❗ защита от дубля на границе мешков
+  if(next.id === lastId){
+    refillBag();
+    next = bag.pop();
+  }
+
+  lastId = next.id;
+  return next.shape.map(r=>[...r]);
 }
 
 /* ===== INIT ===== */
 function createPiece(){
-  const shape = getNextShape();
+  const shape = getNextPiece();
+
   return {
-    x: Math.floor(COLS/2)-Math.floor(shape[0].length/2),
-    y: 0,
-    shape: shape,
+    x: Math.floor(COLS/2) - Math.floor(shape[0].length/2),
+    y: -1, // 🔥 критично
+    shape,
     color: COLORS[Math.floor(Math.random()*COLORS.length)]
   };
 }
@@ -55,6 +67,8 @@ function createPiece(){
 function resetGame(){
   grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
   bag = [];
+  lastId = null;
+
   piece = createPiece();
 
   score = 0;
@@ -85,7 +99,7 @@ function collide(p){
       let ny=p.y+y;
 
       if(nx<0||nx>=COLS||ny>=ROWS) return true;
-      if(grid[ny]&&grid[ny][nx]) return true;
+      if(ny>=0 && grid[ny][nx]) return true;
     }
   }
   return false;
@@ -96,7 +110,10 @@ function merge(){
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
-        grid[piece.y+y][piece.x+x]=piece.color;
+        let ny = piece.y + y;
+        if(ny>=0){
+          grid[ny][piece.x+x]=piece.color;
+        }
       }
     });
   });
@@ -149,8 +166,10 @@ function update(time=0){
       piece.y--;
       merge();
       clearLines();
+
       piece=createPiece();
 
+      // 🔥 железный game over
       if(collide(piece)){
         isGameOver=true;
         document.getElementById("gameOver").style.display="flex";
