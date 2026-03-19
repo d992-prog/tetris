@@ -7,7 +7,6 @@ const ROWS = 20;
 let grid;
 let piece;
 
-/* ---------- SHAPES ---------- */
 const SHAPES = [
   [[1,1,1,1]],
   [[1,1],[1,1]],
@@ -16,9 +15,7 @@ const SHAPES = [
   [[0,1,1],[1,1,0]]
 ];
 
-const COLORS = [
-  "#00e5ff","#ffd600","#d500f9","#00e676","#ff1744"
-];
+const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744"];
 
 /* ---------- INIT ---------- */
 function resetGrid(){
@@ -27,9 +24,10 @@ function resetGrid(){
 
 function createPiece(){
   const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+
   return {
-    x: 3,
-    y: 0,
+    x: Math.floor(COLS/2) - Math.floor(shape[0].length/2),
+    y: -1,
     shape: shape.map(r=>[...r]),
     color: COLORS[Math.floor(Math.random()*COLORS.length)]
   };
@@ -38,13 +36,14 @@ function createPiece(){
 /* ---------- RESIZE ---------- */
 function resizeCanvas(){
   const wrapper = document.querySelector(".game-wrapper");
+
   const h = wrapper.clientHeight;
   const w = wrapper.clientWidth;
 
   const block = Math.floor(Math.min(h/ROWS, w/COLS));
 
-  canvas.width = block*COLS;
-  canvas.height = block*ROWS;
+  canvas.width = block * COLS;
+  canvas.height = block * ROWS;
 }
 
 window.addEventListener("resize", resizeCanvas);
@@ -54,13 +53,13 @@ window.addEventListener("load", ()=>setTimeout(resizeCanvas,50));
 function collide(p){
   for(let y=0;y<p.shape.length;y++){
     for(let x=0;x<p.shape[y].length;x++){
-      if(p.shape[y][x]){
-        let nx = p.x + x;
-        let ny = p.y + y;
+      if(!p.shape[y][x]) continue;
 
-        if(nx<0 || nx>=COLS || ny>=ROWS) return true;
-        if(ny>=0 && grid[ny][nx]) return true;
-      }
+      const nx = p.x + x;
+      const ny = p.y + y;
+
+      if(nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if(ny >= 0 && grid[ny][nx]) return true;
     }
   }
   return false;
@@ -79,10 +78,9 @@ function merge(){
 
 /* ---------- ROTATE ---------- */
 function rotate(matrix){
-  const res = matrix[0].map((_,i)=>
+  return matrix[0].map((_,i)=>
     matrix.map(r=>r[i]).reverse()
   );
-  return res;
 }
 
 /* ---------- GAME LOOP ---------- */
@@ -105,7 +103,7 @@ function update(time=0){
       piece = createPiece();
 
       if(collide(piece)){
-        resetGrid(); // restart on overflow
+        resetGrid();
       }
     }
 
@@ -118,7 +116,6 @@ function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const size = canvas.width/COLS;
 
-  // grid
   grid.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
@@ -128,7 +125,6 @@ function draw(){
     });
   });
 
-  // piece
   ctx.fillStyle = piece.color;
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
@@ -139,7 +135,6 @@ function draw(){
   });
 }
 
-/* ---------- LOOP ---------- */
 function loop(time){
   update(time);
   draw();
@@ -167,7 +162,6 @@ function rotatePiece(){
   }
 }
 
-/* buttons */
 document.getElementById("left").onclick = ()=>move(-1);
 document.getElementById("right").onclick = ()=>move(1);
 document.getElementById("down").onclick = drop;
