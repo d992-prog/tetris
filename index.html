@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Tetris — Alina Edition ✨</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -33,10 +32,12 @@ content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no,
 
 </div>
 
+<!-- GAME OVER -->
 <div id="gameOver" class="overlay">
   <div class="overlay-box">
-    <h2>Game Over 💔</h2>
-    <button onclick="restartGame()">Play Again</button>
+    <h2>💔 Game Over</h2>
+    <p class="lose-text">вы проиграли, минус 5 гигабайт трафика 😄</p>
+    <button class="play-again" onclick="restartGame()">Начать заново</button>
   </div>
 </div>
 
