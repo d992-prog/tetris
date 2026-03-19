@@ -12,45 +12,49 @@ let isGameOver = false;
 
 /* ===== SHAPES ===== */
 const SHAPES = [
-  [[1,1,1,1]],               // I
-  [[1,1],[1,1]],             // O
-  [[0,1,0],[1,1,1]],         // T
-  [[1,1,0],[0,1,1]],         // S
-  [[0,1,1],[1,1,0]],         // Z
-  [[1,0,0],[1,1,1]],         // L
-  [[0,0,1],[1,1,1]]          // J
+  [[1,1,1,1]],
+  [[1,1],[1,1]],
+  [[0,1,0],[1,1,1]],
+  [[1,1,0],[0,1,1]],
+  [[0,1,1],[1,1,0]],
+  [[1,0,0],[1,1,1]],
+  [[0,0,1],[1,1,1]]
 ];
 
 const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744","#ff9100","#2979ff"];
 
-/* ===== RANDOM (ANTI DUPLICATE) ===== */
-let lastShape = null;
+/* ===== 7 BAG ===== */
+let bag = [];
 
-function getRandomShape(){
-  let shape;
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
 
-  do {
-    shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
-  } while(shape === lastShape); // ❗ убирает подряд одинаковые
-
-  lastShape = shape;
-  return shape;
+function getNextShape(){
+  if(bag.length===0){
+    bag = SHAPES.map(s => s.map(r=>[...r]));
+    shuffle(bag);
+  }
+  return bag.pop();
 }
 
 /* ===== INIT ===== */
 function createPiece(){
-  const shape = getRandomShape();
-
+  const shape = getNextShape();
   return {
-    x: Math.floor(COLS/2) - Math.floor(shape[0].length/2),
+    x: Math.floor(COLS/2)-Math.floor(shape[0].length/2),
     y: 0,
-    shape: shape.map(r=>[...r]),
+    shape: shape,
     color: COLORS[Math.floor(Math.random()*COLORS.length)]
   };
 }
 
 function resetGame(){
   grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  bag = [];
   piece = createPiece();
 
   score = 0;
@@ -58,20 +62,18 @@ function resetGame(){
   level = 1;
 
   isGameOver = false;
-
-  document.getElementById("gameOver").style.display = "none";
+  document.getElementById("gameOver").style.display="none";
 }
 
 /* ===== RESIZE ===== */
 function resizeCanvas(){
   const wrapper = document.querySelector(".game-wrapper");
-  const block = Math.floor(Math.min(wrapper.clientHeight/ROWS, wrapper.clientWidth/COLS));
-  canvas.width = block * COLS;
-  canvas.height = block * ROWS;
+  const block = Math.floor(Math.min(wrapper.clientHeight/ROWS,wrapper.clientWidth/COLS));
+  canvas.width = block*COLS;
+  canvas.height = block*ROWS;
 }
-
-window.addEventListener("resize", resizeCanvas);
-window.addEventListener("load", ()=>setTimeout(resizeCanvas,50));
+window.addEventListener("resize",resizeCanvas);
+window.addEventListener("load",()=>setTimeout(resizeCanvas,50));
 
 /* ===== COLLISION ===== */
 function collide(p){
@@ -79,11 +81,11 @@ function collide(p){
     for(let x=0;x<p.shape[y].length;x++){
       if(!p.shape[y][x]) continue;
 
-      const nx = p.x + x;
-      const ny = p.y + y;
+      let nx=p.x+x;
+      let ny=p.y+y;
 
-      if(nx < 0 || nx >= COLS || ny >= ROWS) return true;
-      if(grid[ny] && grid[ny][nx]) return true;
+      if(nx<0||nx>=COLS||ny>=ROWS) return true;
+      if(grid[ny]&&grid[ny][nx]) return true;
     }
   }
   return false;
@@ -94,21 +96,20 @@ function merge(){
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
-        grid[piece.y+y][piece.x+x] = piece.color;
+        grid[piece.y+y][piece.x+x]=piece.color;
       }
     });
   });
 }
 
-/* ===== CLEAR LINES ===== */
+/* ===== CLEAR ===== */
 function clearLines(){
-  let cleared = 0;
+  let cleared=0;
 
-  outer: for(let y=ROWS-1;y>=0;y--){
+  outer:for(let y=ROWS-1;y>=0;y--){
     for(let x=0;x<COLS;x++){
       if(!grid[y][x]) continue outer;
     }
-
     grid.splice(y,1);
     grid.unshift(Array(COLS).fill(0));
     cleared++;
@@ -116,9 +117,9 @@ function clearLines(){
   }
 
   if(cleared){
-    lines += cleared;
-    score += cleared * 100;
-    level = 1 + Math.floor(lines/10);
+    lines+=cleared;
+    score+=cleared*100;
+    level=1+Math.floor(lines/10);
   }
 }
 
@@ -128,55 +129,53 @@ function rotate(m){
 }
 
 /* ===== LOOP ===== */
-let lastTime = 0;
-let dropCounter = 0;
+let lastTime=0;
+let dropCounter=0;
 
 function update(time=0){
   if(isGameOver) return;
 
-  const delta = time - lastTime;
-  lastTime = time;
+  const delta=time-lastTime;
+  lastTime=time;
 
-  dropCounter += delta;
+  dropCounter+=delta;
 
-  const speed = Math.max(120, 600 - level * 40);
+  const speed=Math.max(120,600-level*40);
 
-  if(dropCounter > speed){
+  if(dropCounter>speed){
     piece.y++;
 
     if(collide(piece)){
       piece.y--;
       merge();
       clearLines();
+      piece=createPiece();
 
-      piece = createPiece();
-
-      /* ===== GAME OVER FIX ===== */
       if(collide(piece)){
-        isGameOver = true;
-        document.getElementById("gameOver").style.display = "flex";
+        isGameOver=true;
+        document.getElementById("gameOver").style.display="flex";
         return;
       }
     }
 
-    dropCounter = 0;
+    dropCounter=0;
   }
 }
 
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  const size = canvas.width/COLS;
+  const size=canvas.width/COLS;
 
   grid.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
-        ctx.fillStyle = v;
+        ctx.fillStyle=v;
         ctx.fillRect(x*size,y*size,size,size);
       }
     });
   });
 
-  ctx.fillStyle = piece.color;
+  ctx.fillStyle=piece.color;
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
@@ -185,22 +184,22 @@ function draw(){
     });
   });
 
-  document.getElementById("score").innerText = score;
-  document.getElementById("lines").innerText = lines;
-  document.getElementById("level").innerText = level;
+  document.getElementById("score").innerText=score;
+  document.getElementById("lines").innerText=lines;
+  document.getElementById("level").innerText=level;
 }
 
 function loop(time){
   update(time);
   draw();
-  loopId = requestAnimationFrame(loop);
+  loopId=requestAnimationFrame(loop);
 }
 
 /* ===== CONTROLS ===== */
 function move(dx){
   if(isGameOver) return;
-  piece.x += dx;
-  if(collide(piece)) piece.x -= dx;
+  piece.x+=dx;
+  if(collide(piece)) piece.x-=dx;
 }
 
 function drop(){
@@ -211,23 +210,23 @@ function drop(){
 
 function rotatePiece(){
   if(isGameOver) return;
-  const prev = piece.shape;
-  piece.shape = rotate(piece.shape);
-  if(collide(piece)) piece.shape = prev;
+  const prev=piece.shape;
+  piece.shape=rotate(piece.shape);
+  if(collide(piece)) piece.shape=prev;
 }
 
-document.getElementById("left").onclick = ()=>move(-1);
-document.getElementById("right").onclick = ()=>move(1);
-document.getElementById("down").onclick = drop;
-document.getElementById("rotate").onclick = rotatePiece;
+document.getElementById("left").onclick=()=>move(-1);
+document.getElementById("right").onclick=()=>move(1);
+document.getElementById("down").onclick=drop;
+document.getElementById("rotate").onclick=rotatePiece;
 
-document.getElementById("restart").onclick = restartGame;
-document.getElementById("playAgainBtn").onclick = restartGame;
+document.getElementById("restart").onclick=restartGame;
+document.getElementById("playAgainBtn").onclick=restartGame;
 
-/* ===== RESTART FIX ===== */
+/* ===== RESTART ===== */
 function restartGame(){
   cancelAnimationFrame(loopId);
-  loopId = null;
+  loopId=null;
   resetGame();
   loop();
 }
@@ -236,10 +235,10 @@ function restartGame(){
 resetGame();
 loop();
 
-/* ===== SAFARI ZOOM FIX ===== */
-let lastTouchEnd = 0;
-document.addEventListener('touchend', (e) => {
-  const now = Date.now();
-  if (now - lastTouchEnd <= 300) e.preventDefault();
-  lastTouchEnd = now;
-}, false);
+/* ===== SAFARI FIX ===== */
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{
+  const now=Date.now();
+  if(now-lastTouchEnd<=300)e.preventDefault();
+  lastTouchEnd=now;
+},false);
