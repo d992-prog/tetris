@@ -786,29 +786,39 @@
     }
 
     // ============================================
-    // CANVAS RESIZING (FIXED - SUBTRACT UI HEIGHT)
+    // CANVAS RESIZING (FIXED - REAL HEIGHT CALCULATION)
     // ============================================
+    function getRealHeight() {
+        return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    }
+
     function resizeCanvas() {
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas) return;
+
         // Get UI elements
         const header = document.querySelector('.game-header');
         const info = document.querySelector('.info-bar');
         const controls = document.querySelector('.controls-bar');
-        const wrapper = document.querySelector('.game-wrapper');
-        
-        if (!header || !info || !controls || !wrapper) return;
 
-        // Calculate available height for canvas
-        const totalHeight = window.innerHeight;
-        const uiHeight = header.offsetHeight + info.offsetHeight + controls.offsetHeight + 8; // 8px margin
-        const availableHeight = totalHeight - uiHeight;
-        
-        // Get wrapper width
-        const wrapperWidth = wrapper.clientWidth;
+        // Get real viewport height (Safari fix)
+        const totalHeight = getRealHeight();
+
+        // Calculate used height
+        const usedHeight = (header ? header.offsetHeight : 0) +
+                          (info ? info.offsetHeight : 0) +
+                          (controls ? controls.offsetHeight : 0);
+
+        // Available height for canvas (with 6px margin)
+        const availableHeight = totalHeight - usedHeight - 6;
+
+        // Available width
+        const availableWidth = window.innerWidth - 10;
 
         // Calculate block size using BOTH constraints
         const blockSizeByHeight = Math.floor(availableHeight / ROWS);
-        const blockSizeByWidth = Math.floor(wrapperWidth / COLS);
-        
+        const blockSizeByWidth = Math.floor(availableWidth / COLS);
+
         // Use the smaller one to ensure fit
         const blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
         BLOCK_SIZE = Math.max(10, blockSize);
@@ -863,6 +873,7 @@
 
         document.addEventListener('keydown', handleKeydown);
         window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', resizeCanvas);
 
         // Initial canvas setup
         resizeCanvas();
