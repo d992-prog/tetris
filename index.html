@@ -20,14 +20,12 @@
             <h1 class="game-title">
                 <span class="title-icon">🌸</span>
                 Tetris
-                <span class="title-subtitle">Alina Edition</span>
                 <span class="title-icon">🌸</span>
             </h1>
         </header>
 
-        <!-- Main Game Area -->
+        <!-- Game Board -->
         <div class="game-wrapper">
-            <!-- Game Board -->
             <div class="board-container">
                 <canvas id="gameCanvas" class="game-canvas"></canvas>
 
@@ -54,10 +52,6 @@
             <div class="info-item">
                 <span class="info-label">Lines</span>
                 <span class="info-value" id="lines">0</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Next</span>
-                <canvas id="nextCanvas" class="next-canvas"></canvas>
             </div>
         </div>
 
@@ -101,11 +95,11 @@
         <!-- Pause Overlay -->
         <div class="overlay" id="pauseOverlay">
             <div class="overlay-content">
-                <div class="overlay-icon">⏸️</div>
+                <div class="overlay-icon">⏸</div>
                 <h2 class="overlay-title">Paused</h2>
                 <button class="play-again-btn" id="resumeBtn">
                     <span class="btn-text">Resume</span>
-                    <span class="btn-emoji">▶️</span>
+                    <span class="btn-emoji">▶</span>
                 </button>
             </div>
         </div>
