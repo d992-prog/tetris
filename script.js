@@ -49,13 +49,16 @@
         level: 1,
         lines: 0,
         highScore: 0,
-        isPlaying: false,
+        isRunning: false,
         isPaused: false,
         isGameOver: false,
         dropInterval: 800,
         lastDropTime: 0,
         bag: []
     };
+    
+    // Game loop
+    let animationId = null;
 
     // ============================================
     // CANVAS & CONTEXT
@@ -265,6 +268,9 @@
 
             playSound('clear');
             updateUI();
+        } else {
+            // Force UI update on next frame
+            uiUpdateCounter = 9;
         }
 
         return linesCleared;
@@ -274,7 +280,7 @@
     // ROTATION (with wall kick)
     // ============================================
     function rotatePiece() {
-        if (!gameState.currentPiece || !gameState.isPlaying || gameState.isPaused) return false;
+        if (!gameState.currentPiece || !gameState.isRunning || gameState.isPaused) return false;
 
         const piece = gameState.currentPiece;
         const shape = piece.shape;
@@ -311,7 +317,7 @@
     // PIECE MOVEMENT
     // ============================================
     function movePiece(dir) {
-        if (!gameState.isPlaying || gameState.isPaused || !gameState.currentPiece) return false;
+        if (!gameState.isRunning || gameState.isPaused || !gameState.currentPiece) return false;
 
         if (isValidMove(gameState.currentPiece, dir, 0)) {
             gameState.currentPiece.x += dir;
@@ -323,12 +329,11 @@
     }
 
     function dropPiece() {
-        if (!gameState.isPlaying || gameState.isPaused || !gameState.currentPiece) return false;
+        if (!gameState.isRunning || gameState.isPaused || !gameState.currentPiece) return false;
 
         if (isValidMove(gameState.currentPiece, 0, 1)) {
             gameState.currentPiece.y++;
             gameState.score += 1;
-            updateUI();
             drawBoard();
             return true;
         }
@@ -336,7 +341,7 @@
     }
 
     function hardDrop() {
-        if (!gameState.isPlaying || gameState.isPaused || !gameState.currentPiece) return;
+        if (!gameState.isRunning || gameState.isPaused || !gameState.currentPiece) return;
 
         let dropDistance = 0;
         while (isValidMove(gameState.currentPiece, 0, dropDistance + 1)) {
@@ -347,11 +352,12 @@
         playSound('drop');
         drawBoard();
         lockPiece();
-        
+
         if (clearLines() === 0) {
             playSound('drop');
         }
         
+        updateUI();
         spawnPiece();
     }
 
@@ -371,15 +377,17 @@
             return;
         }
 
-        drawNextPiece();
-        drawBoard();
+        if (gameState.isRunning) {
+            drawNextPiece();
+            drawBoard();
+        }
     }
 
     // ============================================
     // GAME OVER
     // ============================================
     function gameOver() {
-        gameState.isPlaying = false;
+        gameState.isRunning = false;
         gameState.isGameOver = true;
         playSound('gameover');
 
@@ -539,10 +547,10 @@
     // ============================================
     // GAME LOOP
     // ============================================
-    let animationId = null;
-
+    let uiUpdateCounter = 0;
+    
     function gameLoop(timestamp) {
-        if (!gameState.isPlaying) {
+        if (!gameState.isRunning) {
             animationId = requestAnimationFrame(gameLoop);
             return;
         }
@@ -567,6 +575,14 @@
         }
 
         drawBoard();
+        
+        // Update UI less frequently for performance
+        uiUpdateCounter++;
+        if (uiUpdateCounter >= 10) {
+            updateUI();
+            uiUpdateCounter = 0;
+        }
+        
         animationId = requestAnimationFrame(gameLoop);
     }
 
@@ -574,6 +590,7 @@
     // GAME CONTROL
     // ============================================
     function startGame() {
+        // Reset game state
         gameState.board = createBoard();
         gameState.score = 0;
         gameState.level = 1;
@@ -581,42 +598,43 @@
         gameState.dropInterval = LEVEL_SPEEDS[0];
         gameState.bag = [];
         gameState.nextPiece = null;
-        gameState.isPlaying = true;
+        gameState.isRunning = true;
         gameState.isPaused = false;
         gameState.isGameOver = false;
         gameState.lastDropTime = 0;
+        uiUpdateCounter = 0;
 
+        // Hide overlays
         const startOverlay = document.getElementById('startOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const pauseOverlay = document.getElementById('pauseOverlay');
-        const pauseBtn = document.getElementById('pauseBtn');
 
         if (startOverlay) startOverlay.classList.remove('active');
         if (gameOverOverlay) gameOverOverlay.classList.remove('active');
         if (pauseOverlay) pauseOverlay.classList.remove('active');
-        if (pauseBtn) pauseBtn.querySelector('.btn-icon').textContent = '⏸️';
 
         initAudio();
         spawnPiece();
         updateUI();
 
+        // Start game loop
         if (animationId) cancelAnimationFrame(animationId);
         animationId = requestAnimationFrame(gameLoop);
     }
 
     function pauseGame() {
-        if (!gameState.isPlaying || gameState.isGameOver) return;
+        if (!gameState.isRunning || gameState.isGameOver) return;
 
         gameState.isPaused = !gameState.isPaused;
-        
+
         const pauseOverlay = document.getElementById('pauseOverlay');
-        const pauseBtn = document.getElementById('pauseBtn');
-        
+
         if (gameState.isPaused) {
             if (pauseOverlay) pauseOverlay.classList.add('active');
         } else {
             if (pauseOverlay) pauseOverlay.classList.remove('active');
             gameState.lastDropTime = 0;
+            updateUI();
         }
     }
 
@@ -632,8 +650,8 @@
     // INPUT HANDLING
     // ============================================
     function handleKeydown(e) {
-        if (!gameState.isPlaying || gameState.isPaused) {
-            if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && gameState.isPlaying && !gameState.isGameOver) {
+        if (!gameState.isRunning || gameState.isPaused) {
+            if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && gameState.isRunning && !gameState.isGameOver) {
                 e.preventDefault();
                 pauseGame();
             }
@@ -671,7 +689,7 @@
     }
 
     function handleTouchZone(action) {
-        if (!gameState.isPlaying || gameState.isPaused) return;
+        if (!gameState.isRunning || gameState.isPaused) return;
 
         switch (action) {
             case 'left': movePiece(-1); break;
@@ -696,7 +714,7 @@
                 btn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     buttons[id]();
-                }, { passive: true });
+                }, { passive: false });
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     buttons[id]();
@@ -706,11 +724,12 @@
 
         // Touch zones
         document.querySelectorAll('.touch-zone').forEach(zone => {
+            const action = zone.getAttribute('data-action');
             const handler = (e) => {
                 e.preventDefault();
-                handleTouchZone(zone.getAttribute('data-action'));
+                handleTouchZone(action);
             };
-            zone.addEventListener('touchstart', handler, { passive: true });
+            zone.addEventListener('touchstart', handler, { passive: false });
             zone.addEventListener('click', handler);
         });
     }
@@ -724,64 +743,62 @@
         const resumeBtn = document.getElementById('resumeBtn');
         const playAgainBtn = document.getElementById('playAgainBtn');
 
-        if (pauseBtn) pauseBtn.addEventListener('click', pauseGame);
-        if (soundBtn) soundBtn.addEventListener('click', toggleSound);
-        if (restartBtn) restartBtn.addEventListener('click', startGame);
-        if (startBtn) startBtn.addEventListener('click', startGame);
-        if (resumeBtn) resumeBtn.addEventListener('click', pauseGame);
-        if (playAgainBtn) playAgainBtn.addEventListener('click', startGame);
+        if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.preventDefault(); pauseGame(); });
+        if (soundBtn) soundBtn.addEventListener('click', (e) => { e.preventDefault(); toggleSound(); });
+        if (restartBtn) restartBtn.addEventListener('click', (e) => { e.preventDefault(); startGame(); });
+        if (startBtn) startBtn.addEventListener('click', (e) => { e.preventDefault(); startGame(); });
+        if (resumeBtn) resumeBtn.addEventListener('click', (e) => { e.preventDefault(); pauseGame(); });
+        if (playAgainBtn) playAgainBtn.addEventListener('click', (e) => { e.preventDefault(); startGame(); });
     }
 
     // ============================================
     // CANVAS RESIZING (HEIGHT-BASED)
     // ============================================
     function resizeCanvas() {
-        const container = document.querySelector('.board-container');
-        if (!container) return;
+        const wrapper = document.querySelector('.game-wrapper');
+        if (!wrapper) return;
 
-        // Calculate available height
-        const headerHeight = 40;
-        const infoBarHeight = 50;
-        const controlsHeight = 60;
-        const padding = 20;
-        
-        const availableHeight = window.innerHeight - headerHeight - infoBarHeight - controlsHeight - padding;
-        
+        // Get available height from wrapper
+        const wrapperHeight = wrapper.clientHeight;
+        const wrapperWidth = wrapper.clientWidth;
+
         // Calculate block size based on height (priority)
-        const blockSizeByHeight = Math.floor(availableHeight / ROWS);
-        
+        const blockSizeByHeight = Math.floor(wrapperHeight / ROWS);
+
         // Also check width constraint
-        const containerWidth = container.clientWidth - 12;
-        const blockSizeByWidth = Math.floor(containerWidth / COLS);
-        
+        const blockSizeByWidth = Math.floor(wrapperWidth / COLS);
+
         // Use the smaller one
         const blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
         BLOCK_SIZE = Math.max(10, blockSize);
         NEXT_BLOCK_SIZE = Math.max(15, Math.floor(BLOCK_SIZE * 0.8));
-        
+
         // Handle device pixel ratio
         const dpr = window.devicePixelRatio || 1;
-        
+
         // Set internal resolution
         canvas.width = COLS * BLOCK_SIZE * dpr;
         canvas.height = ROWS * BLOCK_SIZE * dpr;
-        
-        // Scale context
+
+        // Scale context for DPR
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        
+
         // CSS display size
         canvas.style.width = (COLS * BLOCK_SIZE) + 'px';
         canvas.style.height = (ROWS * BLOCK_SIZE) + 'px';
-        
+
         // Next piece canvas
         nextCanvas.width = NEXT_PREVIEW_SIZE * NEXT_BLOCK_SIZE * dpr;
         nextCanvas.height = NEXT_PREVIEW_SIZE * NEXT_BLOCK_SIZE * dpr;
         nextCanvas.style.width = (NEXT_PREVIEW_SIZE * NEXT_BLOCK_SIZE) + 'px';
         nextCanvas.style.height = (NEXT_PREVIEW_SIZE * NEXT_BLOCK_SIZE) + 'px';
-        
+
         // Redraw
         drawBoard();
         drawNextPiece();
+        
+        // Force UI update
+        updateUI();
     }
 
     // ============================================
@@ -799,6 +816,7 @@
         }
 
         gameState.highScore = loadHighScore();
+        uiUpdateCounter = 0;
         updateUI();
 
         setupMobileButtons();
@@ -806,8 +824,11 @@
 
         document.addEventListener('keydown', handleKeydown);
         window.addEventListener('resize', resizeCanvas);
-        
+
+        // Initial canvas setup
         resizeCanvas();
+
+        // Initial draw
         drawBoard();
         drawNextPiece();
     }
