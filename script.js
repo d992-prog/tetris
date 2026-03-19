@@ -79,7 +79,6 @@
         }
     }
 
-    // Unlock audio on first user interaction
     function unlockAudio() {
         if (!audioInitialized) {
             initAudio();
@@ -91,7 +90,6 @@
         document.body.removeEventListener('click', unlockAudio);
     }
 
-    // Setup audio unlock on first interaction
     document.body.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
     document.body.addEventListener('click', unlockAudio, { once: true });
 
@@ -141,8 +139,6 @@
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 oscillator.start(now);
                 oscillator.stop(now + 0.15);
-                
-                // Second tone for harmony
                 setTimeout(() => {
                     const osc2 = audioContext.createOscillator();
                     const gain2 = audioContext.createGain();
@@ -232,14 +228,8 @@
                 if (shape[row][col]) {
                     const newX = piece.x + col + offsetX;
                     const newY = piece.y + row + offsetY;
-
-                    if (newX < 0 || newX >= COLS || newY >= ROWS) {
-                        return false;
-                    }
-
-                    if (newY >= 0 && gameState.board[newY][newX]) {
-                        return false;
-                    }
+                    if (newX < 0 || newX >= COLS || newY >= ROWS) return false;
+                    if (newY >= 0 && gameState.board[newY][newX]) return false;
                 }
             }
         }
@@ -340,7 +330,6 @@
     // ============================================
     function movePiece(dir) {
         if (!gameState.isRunning || gameState.isPaused || !gameState.currentPiece) return false;
-
         if (isValidMove(gameState.currentPiece, dir, 0)) {
             gameState.currentPiece.x += dir;
             playSound('move');
@@ -352,7 +341,6 @@
 
     function dropPiece() {
         if (!gameState.isRunning || gameState.isPaused || !gameState.currentPiece) return false;
-
         if (isValidMove(gameState.currentPiece, 0, 1)) {
             gameState.currentPiece.y++;
             gameState.score += 1;
@@ -414,7 +402,6 @@
         document.getElementById('finalLevel').textContent = gameState.level;
         document.getElementById('finalLines').textContent = gameState.lines;
         document.getElementById('gameOverOverlay').classList.add('active');
-
         updateUI();
     }
 
@@ -432,7 +419,6 @@
             context.lineWidth = 1;
             context.strokeRect(x * size + padding, y * size + padding, innerSize, innerSize);
         } else {
-            // Main block with gradient
             const gradient = context.createLinearGradient(x * size, y * size, x * size + size, y * size + size);
             gradient.addColorStop(0, lightenColor(color, 15));
             gradient.addColorStop(0.5, color);
@@ -447,7 +433,6 @@
             }
             context.fill();
 
-            // Highlight
             context.fillStyle = 'rgba(255, 255, 255, 0.35)';
             context.beginPath();
             if (context.roundRect) {
@@ -457,7 +442,6 @@
             }
             context.fill();
 
-            // Border/shadow
             context.strokeStyle = 'rgba(0, 0, 0, 0.15)';
             context.lineWidth = 1;
             context.strokeRect(x * size + padding, y * size + padding, innerSize, innerSize);
@@ -469,7 +453,6 @@
 
         ctx.clearRect(0, 0, COLS * BLOCK_SIZE, ROWS * BLOCK_SIZE);
 
-        // Grid background
         ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
@@ -479,7 +462,6 @@
             }
         }
 
-        // Locked pieces
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 if (gameState.board[row][col]) {
@@ -488,7 +470,6 @@
             }
         }
 
-        // Ghost piece
         if (gameState.currentPiece) {
             const piece = gameState.currentPiece;
             let ghostY = piece.y;
@@ -504,7 +485,6 @@
                 }
             }
 
-            // Current piece
             for (let row = 0; row < piece.shape.length; row++) {
                 for (let col = 0; col < piece.shape[row].length; col++) {
                     if (piece.shape[row][col] && piece.y + row >= 0) {
@@ -582,7 +562,6 @@
     // GAME CONTROL
     // ============================================
     function startGame() {
-        // Reset game state
         gameState.board = createBoard();
         gameState.score = 0;
         gameState.level = 1;
@@ -594,7 +573,6 @@
         gameState.isGameOver = false;
         gameState.lastDropTime = 0;
 
-        // Hide overlays
         const startOverlay = document.getElementById('startOverlay');
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const pauseOverlay = document.getElementById('pauseOverlay');
@@ -607,7 +585,6 @@
         spawnPiece();
         updateUI();
 
-        // Start game loop
         if (animationId) cancelAnimationFrame(animationId);
         animationId = requestAnimationFrame(gameLoop);
     }
@@ -649,38 +626,17 @@
         }
 
         switch (e.key) {
-            case 'ArrowLeft':
-                e.preventDefault();
-                movePiece(-1);
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                movePiece(1);
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                dropPiece();
-                break;
-            case 'ArrowUp':
-                e.preventDefault();
-                rotatePiece();
-                break;
-            case ' ':
-                e.preventDefault();
-                hardDrop();
-                break;
-            case 'p':
-            case 'P':
-            case 'Escape':
-                e.preventDefault();
-                pauseGame();
-                break;
+            case 'ArrowLeft': e.preventDefault(); movePiece(-1); break;
+            case 'ArrowRight': e.preventDefault(); movePiece(1); break;
+            case 'ArrowDown': e.preventDefault(); dropPiece(); break;
+            case 'ArrowUp': e.preventDefault(); rotatePiece(); break;
+            case ' ': e.preventDefault(); hardDrop(); break;
+            case 'p': case 'P': case 'Escape': e.preventDefault(); pauseGame(); break;
         }
     }
 
     function handleTouchZone(action) {
         if (!gameState.isRunning || gameState.isPaused) return;
-
         switch (action) {
             case 'left': movePiece(-1); break;
             case 'right': movePiece(1); break;
@@ -689,7 +645,6 @@
         }
     }
 
-    // Mobile button handlers
     function setupMobileButtons() {
         const buttons = {
             'mobileLeft': () => movePiece(-1),
@@ -701,30 +656,19 @@
         Object.keys(buttons).forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    buttons[id]();
-                }, { passive: false });
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    buttons[id]();
-                });
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); buttons[id](); }, { passive: false });
+                btn.addEventListener('click', (e) => { e.preventDefault(); buttons[id](); });
             }
         });
 
-        // Touch zones
         document.querySelectorAll('.touch-zone').forEach(zone => {
             const action = zone.getAttribute('data-action');
-            const handler = (e) => {
-                e.preventDefault();
-                handleTouchZone(action);
-            };
+            const handler = (e) => { e.preventDefault(); handleTouchZone(action); };
             zone.addEventListener('touchstart', handler, { passive: false });
             zone.addEventListener('click', handler);
         });
     }
 
-    // Control panel buttons
     function setupControlButtons() {
         const pauseBtn = document.getElementById('pauseBtn');
         const soundBtn = document.getElementById('soundBtn');
@@ -742,50 +686,30 @@
     }
 
     // ============================================
-    // CANVAS RESIZING (SAFE - HARD LIMIT)
+    // CANVAS RESIZING (WRAPPER-BASED)
     // ============================================
     function resizeCanvas() {
         const canvas = document.getElementById('gameCanvas');
-        if (!canvas) return;
+        const wrapper = document.querySelector('.game-wrapper');
+        
+        if (!canvas || !wrapper) return;
 
-        // Get real viewport height (Safari fix)
-        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const h = wrapper.clientHeight;
+        const w = wrapper.clientWidth;
 
-        // Reserve guaranteed space for UI (header + info + controls + margins)
-        const reservedHeight = 110;
-
-        // Available dimensions
-        const availableHeight = vh - reservedHeight;
-        const availableWidth = window.innerWidth - 10;
-
-        // Calculate block size
-        let blockSize = Math.floor(Math.min(availableHeight / ROWS, availableWidth / COLS));
-
-        // HARD LIMIT - prevents overflow
-        const maxHeight = availableHeight;
-        const calculatedHeight = blockSize * ROWS;
-
-        if (calculatedHeight > maxHeight) {
-            blockSize = Math.floor(maxHeight / ROWS);
-        }
-
+        const blockSize = Math.floor(Math.min(h / ROWS, w / COLS));
         BLOCK_SIZE = Math.max(10, blockSize);
 
-        // Handle device pixel ratio
         const dpr = window.devicePixelRatio || 1;
 
-        // Set internal resolution
         canvas.width = COLS * BLOCK_SIZE * dpr;
         canvas.height = ROWS * BLOCK_SIZE * dpr;
 
-        // Scale context for DPR
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        // CSS display size
         canvas.style.width = (COLS * BLOCK_SIZE) + 'px';
         canvas.style.height = (ROWS * BLOCK_SIZE) + 'px';
 
-        // Redraw
         drawBoard();
         updateUI();
     }
@@ -812,10 +736,7 @@
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('load', resizeCanvas);
 
-        // Initial canvas setup
         resizeCanvas();
-
-        // Initial draw
         drawBoard();
     }
 
