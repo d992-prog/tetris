@@ -10,7 +10,7 @@ let score, lines, level;
 let loopId = null;
 let isGameOver = false;
 
-/* ===== 7-BAG RANDOM (как в настоящем тетрисе) ===== */
+/* ===== SHAPES ===== */
 const SHAPES = [
   [[1,1,1,1]],               // I
   [[1,1],[1,1]],             // O
@@ -23,29 +23,27 @@ const SHAPES = [
 
 const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744","#ff9100","#2979ff"];
 
-let bag = [];
+/* ===== RANDOM (ANTI DUPLICATE) ===== */
+let lastShape = null;
 
-function shuffle(array){
-  for(let i=array.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [array[i],array[j]] = [array[j],array[i]];
-  }
-}
+function getRandomShape(){
+  let shape;
 
-function getNextShape(){
-  if(bag.length === 0){
-    bag = SHAPES.map(s => s);
-    shuffle(bag);
-  }
-  return bag.pop();
+  do {
+    shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  } while(shape === lastShape); // ❗ убирает подряд одинаковые
+
+  lastShape = shape;
+  return shape;
 }
 
 /* ===== INIT ===== */
 function createPiece(){
-  const shape = getNextShape();
+  const shape = getRandomShape();
+
   return {
     x: Math.floor(COLS/2) - Math.floor(shape[0].length/2),
-    y: -2,
+    y: 0,
     shape: shape.map(r=>[...r]),
     color: COLORS[Math.floor(Math.random()*COLORS.length)]
   };
@@ -53,7 +51,6 @@ function createPiece(){
 
 function resetGame(){
   grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
-  bag = [];
   piece = createPiece();
 
   score = 0;
@@ -63,10 +60,6 @@ function resetGame(){
   isGameOver = false;
 
   document.getElementById("gameOver").style.display = "none";
-
-  if(!loopId){
-    loop();
-  }
 }
 
 /* ===== RESIZE ===== */
@@ -89,8 +82,8 @@ function collide(p){
       const nx = p.x + x;
       const ny = p.y + y;
 
-      if(nx<0 || nx>=COLS || ny>=ROWS) return true;
-      if(ny>=0 && grid[ny][nx]) return true;
+      if(nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if(grid[ny] && grid[ny][nx]) return true;
     }
   }
   return false;
@@ -101,10 +94,7 @@ function merge(){
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
-        const ny = piece.y + y;
-        if(ny >= 0){
-          grid[ny][piece.x+x] = piece.color;
-        }
+        grid[piece.y+y][piece.x+x] = piece.color;
       }
     });
   });
@@ -158,6 +148,7 @@ function update(time=0){
       piece.y--;
       merge();
       clearLines();
+
       piece = createPiece();
 
       /* ===== GAME OVER FIX ===== */
@@ -238,6 +229,7 @@ function restartGame(){
   cancelAnimationFrame(loopId);
   loopId = null;
   resetGame();
+  loop();
 }
 
 /* ===== START ===== */
