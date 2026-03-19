@@ -4,14 +4,11 @@ const ctx = canvas.getContext("2d");
 const COLS = 10;
 const ROWS = 20;
 
-let grid;
-let piece;
+let grid, piece;
+let score, lines, level;
 
-let score = 0;
-let lines = 0;
-let level = 1;
-
-let loopId;
+let loopId = null;
+let isGameOver = false;
 
 /* shapes */
 const SHAPES = [
@@ -25,17 +22,6 @@ const SHAPES = [
 const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744"];
 
 /* init */
-function resetGame(){
-  grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
-  piece = createPiece();
-
-  score = 0;
-  lines = 0;
-  level = 1;
-
-  document.getElementById("gameOver").style.display = "none";
-}
-
 function createPiece(){
   const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
   return {
@@ -46,14 +32,23 @@ function createPiece(){
   };
 }
 
+function resetGame(){
+  grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  piece = createPiece();
+
+  score = 0;
+  lines = 0;
+  level = 1;
+
+  isGameOver = false;
+
+  document.getElementById("gameOver").style.display = "none";
+}
+
 /* resize */
 function resizeCanvas(){
   const wrapper = document.querySelector(".game-wrapper");
-  const h = wrapper.clientHeight;
-  const w = wrapper.clientWidth;
-
-  const block = Math.floor(Math.min(h/ROWS, w/COLS));
-
+  const block = Math.floor(Math.min(wrapper.clientHeight/ROWS, wrapper.clientWidth/COLS));
   canvas.width = block * COLS;
   canvas.height = block * ROWS;
 }
@@ -67,8 +62,8 @@ function collide(p){
     for(let x=0;x<p.shape[y].length;x++){
       if(!p.shape[y][x]) continue;
 
-      const nx = p.x + x;
-      const ny = p.y + y;
+      let nx = p.x + x;
+      let ny = p.y + y;
 
       if(nx<0 || nx>=COLS || ny>=ROWS) return true;
       if(ny>=0 && grid[ny][nx]) return true;
@@ -88,7 +83,7 @@ function merge(){
   });
 }
 
-/* clear lines */
+/* lines */
 function clearLines(){
   let cleared = 0;
 
@@ -111,8 +106,8 @@ function clearLines(){
 }
 
 /* rotate */
-function rotate(matrix){
-  return matrix[0].map((_,i)=>matrix.map(r=>r[i]).reverse());
+function rotate(m){
+  return m[0].map((_,i)=>m.map(r=>r[i]).reverse());
 }
 
 /* loop */
@@ -120,10 +115,13 @@ let lastTime = 0;
 let dropCounter = 0;
 
 function update(time=0){
+  if(isGameOver) return;
+
   const delta = time - lastTime;
   lastTime = time;
 
   dropCounter += delta;
+
   const speed = 600 - level * 40;
 
   if(dropCounter > speed){
@@ -136,8 +134,8 @@ function update(time=0){
       piece = createPiece();
 
       if(collide(piece)){
+        isGameOver = true;
         document.getElementById("gameOver").style.display = "flex";
-        cancelAnimationFrame(loopId);
         return;
       }
     }
@@ -181,30 +179,36 @@ function loop(time){
 
 /* controls */
 function move(dx){
+  if(isGameOver) return;
   piece.x += dx;
   if(collide(piece)) piece.x -= dx;
 }
 
 function drop(){
+  if(isGameOver) return;
   piece.y++;
   if(collide(piece)) piece.y--;
 }
 
 function rotatePiece(){
+  if(isGameOver) return;
   const prev = piece.shape;
   piece.shape = rotate(piece.shape);
   if(collide(piece)) piece.shape = prev;
 }
 
+/* buttons */
 document.getElementById("left").onclick = ()=>move(-1);
 document.getElementById("right").onclick = ()=>move(1);
 document.getElementById("down").onclick = drop;
 document.getElementById("rotate").onclick = rotatePiece;
-document.getElementById("restart").onclick = restartGame;
 
+document.getElementById("restart").onclick = restartGame;
+document.getElementById("playAgainBtn").onclick = restartGame;
+
+/* restart FIX */
 function restartGame(){
   resetGame();
-  loop();
 }
 
 /* start */
