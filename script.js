@@ -786,18 +786,27 @@
     }
 
     // ============================================
-    // CANVAS RESIZING (FIXED)
+    // CANVAS RESIZING (FIXED - SUBTRACT UI HEIGHT)
     // ============================================
     function resizeCanvas() {
+        // Get UI elements
+        const header = document.querySelector('.game-header');
+        const info = document.querySelector('.info-bar');
+        const controls = document.querySelector('.controls-bar');
         const wrapper = document.querySelector('.game-wrapper');
-        if (!wrapper) return;
+        
+        if (!header || !info || !controls || !wrapper) return;
 
-        // Get available dimensions
-        const wrapperHeight = wrapper.clientHeight;
+        // Calculate available height for canvas
+        const totalHeight = window.innerHeight;
+        const uiHeight = header.offsetHeight + info.offsetHeight + controls.offsetHeight + 8; // 8px margin
+        const availableHeight = totalHeight - uiHeight;
+        
+        // Get wrapper width
         const wrapperWidth = wrapper.clientWidth;
 
         // Calculate block size using BOTH constraints
-        const blockSizeByHeight = Math.floor(wrapperHeight / ROWS);
+        const blockSizeByHeight = Math.floor(availableHeight / ROWS);
         const blockSizeByWidth = Math.floor(wrapperWidth / COLS);
         
         // Use the smaller one to ensure fit
