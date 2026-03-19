@@ -6,13 +6,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Tetris — Alina Edition ✨</title>
-    
-    <!-- Google Fonts -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,74 +30,46 @@
             <!-- Game Board -->
             <div class="board-container">
                 <canvas id="gameCanvas" class="game-canvas"></canvas>
-                
-                <!-- Touch Zones for Mobile Controls -->
+
+                <!-- Touch Zones -->
                 <div class="touch-controls">
-                    <div class="touch-zone touch-left" data-action="left">◀️</div>
-                    <div class="touch-zone touch-rotate" data-action="rotate">🔄</div>
-                    <div class="touch-zone touch-right" data-action="right">▶️</div>
-                    <div class="touch-zone touch-down" data-action="down">⬇️</div>
+                    <div class="touch-zone touch-left" data-action="left"></div>
+                    <div class="touch-zone touch-rotate" data-action="rotate"></div>
+                    <div class="touch-zone touch-right" data-action="right"></div>
+                    <div class="touch-zone touch-down" data-action="down"></div>
                 </div>
             </div>
-
-            <!-- Side Panel -->
-            <aside class="side-panel">
-                <!-- Next Piece -->
-                <div class="panel-section">
-                    <h3 class="panel-title">Next</h3>
-                    <canvas id="nextCanvas" class="next-canvas"></canvas>
-                </div>
-
-                <!-- Score -->
-                <div class="panel-section">
-                    <h3 class="panel-title">Score</h3>
-                    <div class="score-display" id="score">0</div>
-                </div>
-
-                <!-- Level -->
-                <div class="panel-section">
-                    <h3 class="panel-title">Level</h3>
-                    <div class="level-display" id="level">1</div>
-                </div>
-
-                <!-- Lines -->
-                <div class="panel-section">
-                    <h3 class="panel-title">Lines</h3>
-                    <div class="lines-display" id="lines">0</div>
-                </div>
-
-                <!-- High Score -->
-                <div class="panel-section">
-                    <h3 class="panel-title">Best</h3>
-                    <div class="highscore-display" id="highScore">0</div>
-                </div>
-
-                <!-- Control Buttons -->
-                <div class="panel-section control-buttons">
-                    <button class="control-btn" id="pauseBtn" title="Pause">
-                        <span class="btn-icon">⏸️</span>
-                    </button>
-                    <button class="control-btn" id="soundBtn" title="Sound">
-                        <span class="btn-icon">🔊</span>
-                    </button>
-                    <button class="control-btn" id="restartBtn" title="Restart">
-                        <span class="btn-icon">🔄</span>
-                    </button>
-                </div>
-            </aside>
         </div>
 
-        <!-- Mobile Control Buttons (Visible on small screens) -->
-        <div class="mobile-controls">
-            <div class="mobile-row">
-                <button class="mobile-btn" id="mobileLeft">◀️</button>
-                <button class="mobile-btn mobile-rotate" id="mobileRotate">🔄</button>
-                <button class="mobile-btn" id="mobileRight">▶️</button>
+        <!-- Info Bar -->
+        <div class="info-bar">
+            <div class="info-item">
+                <span class="info-label">Score</span>
+                <span class="info-value" id="score">0</span>
             </div>
-            <div class="mobile-row">
-                <button class="mobile-btn mobile-drop" id="mobileDrop">⬇️</button>
-                <button class="mobile-btn mobile-hard-drop" id="mobileHardDrop">💥</button>
+            <div class="info-item">
+                <span class="info-label">Level</span>
+                <span class="info-value" id="level">1</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Lines</span>
+                <span class="info-value" id="lines">0</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Next</span>
+                <canvas id="nextCanvas" class="next-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <button class="control-btn" id="pauseBtn" title="Pause">⏸️</button>
+            <button class="control-btn" id="soundBtn" title="Sound">🔊</button>
+            <button class="control-btn control-btn-lg" id="mobileLeft">◀️</button>
+            <button class="control-btn control-btn-lg" id="mobileRotate">🔄</button>
+            <button class="control-btn control-btn-lg" id="mobileRight">▶️</button>
+            <button class="control-btn" id="mobileDrop">⬇️</button>
+            <button class="control-btn" id="restartBtn" title="Restart">🔄</button>
         </div>
 
         <!-- Game Over Overlay -->
@@ -108,7 +78,7 @@
                 <div class="overlay-icon">💔</div>
                 <h2 class="overlay-title">Game Over</h2>
                 <div class="final-score">
-                    <span class="final-label">Final Score</span>
+                    <span class="final-label">Score</span>
                     <span class="final-value" id="finalScore">0</span>
                 </div>
                 <div class="final-stats">
@@ -147,8 +117,8 @@
                 <h2 class="overlay-title">Tetris</h2>
                 <p class="overlay-subtitle">Alina Edition ✨</p>
                 <div class="controls-hint">
-                    <p>📱 <strong>Mobile:</strong> Tap zones or use buttons</p>
-                    <p>⌨️ <strong>Desktop:</strong> Arrow keys + Space</p>
+                    <p>📱 Tap zones or use buttons</p>
+                    <p>⌨️ Arrow keys + Space</p>
                 </div>
                 <button class="play-again-btn" id="startBtn">
                     <span class="btn-text">Start Game</span>
@@ -158,12 +128,6 @@
         </div>
     </div>
 
-    <!-- Audio Elements -->
-    <audio id="soundMove" preload="auto">
-        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
-
-    <!-- Game Script -->
     <script src="script.js"></script>
 </body>
 </html>
