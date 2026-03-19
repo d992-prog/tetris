@@ -11,6 +11,9 @@ let score = 0;
 let lines = 0;
 let level = 1;
 
+let loopId;
+
+/* shapes */
 const SHAPES = [
   [[1,1,1,1]],
   [[1,1],[1,1]],
@@ -103,7 +106,7 @@ function clearLines(){
   if(cleared){
     lines += cleared;
     score += cleared * 100;
-    level = 1 + Math.floor(lines / 10);
+    level = 1 + Math.floor(lines/10);
   }
 }
 
@@ -121,7 +124,6 @@ function update(time=0){
   lastTime = time;
 
   dropCounter += delta;
-
   const speed = 600 - level * 40;
 
   if(dropCounter > speed){
@@ -135,6 +137,7 @@ function update(time=0){
 
       if(collide(piece)){
         document.getElementById("gameOver").style.display = "flex";
+        cancelAnimationFrame(loopId);
         return;
       }
     }
@@ -173,7 +176,7 @@ function draw(){
 function loop(time){
   update(time);
   draw();
-  requestAnimationFrame(loop);
+  loopId = requestAnimationFrame(loop);
 }
 
 /* controls */
@@ -197,11 +200,11 @@ document.getElementById("left").onclick = ()=>move(-1);
 document.getElementById("right").onclick = ()=>move(1);
 document.getElementById("down").onclick = drop;
 document.getElementById("rotate").onclick = rotatePiece;
-
 document.getElementById("restart").onclick = restartGame;
 
 function restartGame(){
   resetGame();
+  loop();
 }
 
 /* start */
