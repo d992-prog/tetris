@@ -10,23 +10,42 @@ let score, lines, level;
 let loopId = null;
 let isGameOver = false;
 
-/* shapes */
+/* ===== 7-BAG RANDOM (как в настоящем тетрисе) ===== */
 const SHAPES = [
-  [[1,1,1,1]],
-  [[1,1],[1,1]],
-  [[0,1,0],[1,1,1]],
-  [[1,1,0],[0,1,1]],
-  [[0,1,1],[1,1,0]]
+  [[1,1,1,1]],               // I
+  [[1,1],[1,1]],             // O
+  [[0,1,0],[1,1,1]],         // T
+  [[1,1,0],[0,1,1]],         // S
+  [[0,1,1],[1,1,0]],         // Z
+  [[1,0,0],[1,1,1]],         // L
+  [[0,0,1],[1,1,1]]          // J
 ];
 
-const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744"];
+const COLORS = ["#00e5ff","#ffd600","#d500f9","#00e676","#ff1744","#ff9100","#2979ff"];
 
-/* init */
+let bag = [];
+
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [array[i],array[j]] = [array[j],array[i]];
+  }
+}
+
+function getNextShape(){
+  if(bag.length === 0){
+    bag = SHAPES.map(s => s);
+    shuffle(bag);
+  }
+  return bag.pop();
+}
+
+/* ===== INIT ===== */
 function createPiece(){
-  const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  const shape = getNextShape();
   return {
-    x: 3,
-    y: -1,
+    x: Math.floor(COLS/2) - Math.floor(shape[0].length/2),
+    y: -2,
     shape: shape.map(r=>[...r]),
     color: COLORS[Math.floor(Math.random()*COLORS.length)]
   };
@@ -34,6 +53,7 @@ function createPiece(){
 
 function resetGame(){
   grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  bag = [];
   piece = createPiece();
 
   score = 0;
@@ -43,9 +63,13 @@ function resetGame(){
   isGameOver = false;
 
   document.getElementById("gameOver").style.display = "none";
+
+  if(!loopId){
+    loop();
+  }
 }
 
-/* resize */
+/* ===== RESIZE ===== */
 function resizeCanvas(){
   const wrapper = document.querySelector(".game-wrapper");
   const block = Math.floor(Math.min(wrapper.clientHeight/ROWS, wrapper.clientWidth/COLS));
@@ -56,14 +80,14 @@ function resizeCanvas(){
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("load", ()=>setTimeout(resizeCanvas,50));
 
-/* collision */
+/* ===== COLLISION ===== */
 function collide(p){
   for(let y=0;y<p.shape.length;y++){
     for(let x=0;x<p.shape[y].length;x++){
       if(!p.shape[y][x]) continue;
 
-      let nx = p.x + x;
-      let ny = p.y + y;
+      const nx = p.x + x;
+      const ny = p.y + y;
 
       if(nx<0 || nx>=COLS || ny>=ROWS) return true;
       if(ny>=0 && grid[ny][nx]) return true;
@@ -72,18 +96,21 @@ function collide(p){
   return false;
 }
 
-/* merge */
+/* ===== MERGE ===== */
 function merge(){
   piece.shape.forEach((row,y)=>{
     row.forEach((v,x)=>{
       if(v){
-        grid[piece.y+y][piece.x+x] = piece.color;
+        const ny = piece.y + y;
+        if(ny >= 0){
+          grid[ny][piece.x+x] = piece.color;
+        }
       }
     });
   });
 }
 
-/* lines */
+/* ===== CLEAR LINES ===== */
 function clearLines(){
   let cleared = 0;
 
@@ -105,12 +132,12 @@ function clearLines(){
   }
 }
 
-/* rotate */
+/* ===== ROTATE ===== */
 function rotate(m){
   return m[0].map((_,i)=>m.map(r=>r[i]).reverse());
 }
 
-/* loop */
+/* ===== LOOP ===== */
 let lastTime = 0;
 let dropCounter = 0;
 
@@ -122,7 +149,7 @@ function update(time=0){
 
   dropCounter += delta;
 
-  const speed = 600 - level * 40;
+  const speed = Math.max(120, 600 - level * 40);
 
   if(dropCounter > speed){
     piece.y++;
@@ -133,6 +160,7 @@ function update(time=0){
       clearLines();
       piece = createPiece();
 
+      /* ===== GAME OVER FIX ===== */
       if(collide(piece)){
         isGameOver = true;
         document.getElementById("gameOver").style.display = "flex";
@@ -177,7 +205,7 @@ function loop(time){
   loopId = requestAnimationFrame(loop);
 }
 
-/* controls */
+/* ===== CONTROLS ===== */
 function move(dx){
   if(isGameOver) return;
   piece.x += dx;
@@ -197,7 +225,6 @@ function rotatePiece(){
   if(collide(piece)) piece.shape = prev;
 }
 
-/* buttons */
 document.getElementById("left").onclick = ()=>move(-1);
 document.getElementById("right").onclick = ()=>move(1);
 document.getElementById("down").onclick = drop;
@@ -206,16 +233,18 @@ document.getElementById("rotate").onclick = rotatePiece;
 document.getElementById("restart").onclick = restartGame;
 document.getElementById("playAgainBtn").onclick = restartGame;
 
-/* restart FIX */
+/* ===== RESTART FIX ===== */
 function restartGame(){
+  cancelAnimationFrame(loopId);
+  loopId = null;
   resetGame();
 }
 
-/* start */
+/* ===== START ===== */
 resetGame();
 loop();
 
-/* anti zoom safari */
+/* ===== SAFARI ZOOM FIX ===== */
 let lastTouchEnd = 0;
 document.addEventListener('touchend', (e) => {
   const now = Date.now();
