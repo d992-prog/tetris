@@ -15,19 +15,19 @@
     const ROWS = 20;
     const NEXT_PREVIEW_SIZE = 5;
     
-    // Dynamic block size (calculated on resize)
+    // Dynamic block size
     let BLOCK_SIZE = 30;
-    let NEXT_BLOCK_SIZE = 25;
+    let NEXT_BLOCK_SIZE = 20;
 
-    // Tetromino definitions
+    // Tetromino definitions with vibrant colors
     const TETROMINOES = {
-        I: { shape: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: '#b8e6ff' },
-        O: { shape: [[1,1],[1,1]], color: '#fff5b8' },
-        T: { shape: [[0,1,0],[1,1,1],[0,0,0]], color: '#e8b8ff' },
-        S: { shape: [[0,1,1],[1,1,0],[0,0,0]], color: '#b8ffb8' },
-        Z: { shape: [[1,1,0],[0,1,1],[0,0,0]], color: '#ffb8b8' },
-        J: { shape: [[1,0,0],[1,1,1],[0,0,0]], color: '#b8c8ff' },
-        L: { shape: [[0,0,1],[1,1,1],[0,0,0]], color: '#ffe0b8' }
+        I: { shape: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], color: '#00e5ff' },
+        O: { shape: [[1,1],[1,1]], color: '#ffd600' },
+        T: { shape: [[0,1,0],[1,1,1],[0,0,0]], color: '#d500f9' },
+        S: { shape: [[0,1,1],[1,1,0],[0,0,0]], color: '#00e676' },
+        Z: { shape: [[1,1,0],[0,1,1],[0,0,0]], color: '#ff1744' },
+        J: { shape: [[1,0,0],[1,1,1],[0,0,0]], color: '#2979ff' },
+        L: { shape: [[0,0,1],[1,1,1],[0,0,0]], color: '#ff9100' }
     };
 
     const TETROMINO_KEYS = Object.keys(TETROMINOES);
@@ -59,6 +59,7 @@
     
     // Game loop
     let animationId = null;
+    let uiUpdateCounter = 0;
 
     // ============================================
     // CANVAS & CONTEXT
@@ -71,21 +72,36 @@
     // ============================================
     let audioContext = null;
     let soundEnabled = true;
+    let audioInitialized = false;
 
     function initAudio() {
-        if (audioContext) return;
+        if (audioInitialized) return;
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            audioInitialized = true;
         } catch (e) {
             soundEnabled = false;
         }
     }
 
+    // Unlock audio on first user interaction
+    function unlockAudio() {
+        if (!audioInitialized) {
+            initAudio();
+        }
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => {});
+        }
+        document.body.removeEventListener('touchstart', unlockAudio);
+        document.body.removeEventListener('click', unlockAudio);
+    }
+
+    // Setup audio unlock on first interaction
+    document.body.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+    document.body.addEventListener('click', unlockAudio, { once: true });
+
     function playSound(type) {
-        if (!soundEnabled) return;
-        
-        if (!audioContext) initAudio();
-        if (!audioContext) return;
+        if (!soundEnabled || !audioContext) return;
         
         if (audioContext.state === 'suspended') {
             audioContext.resume().catch(() => {});
@@ -100,7 +116,7 @@
 
         switch (type) {
             case 'move':
-                oscillator.frequency.setValueAtTime(200, now);
+                oscillator.frequency.setValueAtTime(220, now);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.08, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
@@ -108,7 +124,7 @@
                 oscillator.stop(now + 0.05);
                 break;
             case 'rotate':
-                oscillator.frequency.setValueAtTime(300, now);
+                oscillator.frequency.setValueAtTime(330, now);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.08, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
@@ -116,7 +132,7 @@
                 oscillator.stop(now + 0.08);
                 break;
             case 'drop':
-                oscillator.frequency.setValueAtTime(150, now);
+                oscillator.frequency.setValueAtTime(165, now);
                 oscillator.type = 'triangle';
                 gainNode.gain.setValueAtTime(0.12, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
@@ -124,15 +140,29 @@
                 oscillator.stop(now + 0.1);
                 break;
             case 'clear':
-                oscillator.frequency.setValueAtTime(400, now);
+                oscillator.frequency.setValueAtTime(440, now);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.15, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
                 oscillator.start(now);
                 oscillator.stop(now + 0.15);
+                
+                // Second tone for harmony
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.setValueAtTime(554, audioContext.currentTime);
+                    osc2.type = 'sine';
+                    gain2.gain.setValueAtTime(0.12, audioContext.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.12);
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.12);
+                }, 40);
                 break;
             case 'gameover':
-                oscillator.frequency.setValueAtTime(300, now);
+                oscillator.frequency.setValueAtTime(220, now);
                 oscillator.type = 'sawtooth';
                 gainNode.gain.setValueAtTime(0.15, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
@@ -269,7 +299,6 @@
             playSound('clear');
             updateUI();
         } else {
-            // Force UI update on next frame
             uiUpdateCounter = 9;
         }
 
@@ -418,21 +447,23 @@
             context.lineWidth = 1;
             context.strokeRect(x * size + padding, y * size + padding, innerSize, innerSize);
         } else {
+            // Main block with gradient
             const gradient = context.createLinearGradient(x * size, y * size, x * size + size, y * size + size);
-            gradient.addColorStop(0, lightenColor(color, 20));
+            gradient.addColorStop(0, lightenColor(color, 15));
             gradient.addColorStop(0.5, color);
-            gradient.addColorStop(1, darkenColor(color, 15));
+            gradient.addColorStop(1, darkenColor(color, 10));
 
             context.fillStyle = gradient;
             context.beginPath();
             if (context.roundRect) {
-                context.roundRect(x * size + padding, y * size + padding, innerSize, innerSize, 4);
+                context.roundRect(x * size + padding, y * size + padding, innerSize, innerSize, 3);
             } else {
                 context.rect(x * size + padding, y * size + padding, innerSize, innerSize);
             }
             context.fill();
 
-            context.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            // Highlight
+            context.fillStyle = 'rgba(255, 255, 255, 0.35)';
             context.beginPath();
             if (context.roundRect) {
                 context.roundRect(x * size + padding + 2, y * size + padding + 2, innerSize / 2 - 1, innerSize / 3, 2);
@@ -440,6 +471,11 @@
                 context.rect(x * size + padding + 2, y * size + padding + 2, innerSize / 2 - 1, innerSize / 3);
             }
             context.fill();
+
+            // Border/shadow
+            context.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            context.lineWidth = 1;
+            context.strokeRect(x * size + padding, y * size + padding, innerSize, innerSize);
         }
     }
 
@@ -449,7 +485,7 @@
         ctx.clearRect(0, 0, COLS * BLOCK_SIZE, ROWS * BLOCK_SIZE);
 
         // Grid background
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 if ((row + col) % 2 === 0) {
@@ -547,8 +583,6 @@
     // ============================================
     // GAME LOOP
     // ============================================
-    let uiUpdateCounter = 0;
-    
     function gameLoop(timestamp) {
         if (!gameState.isRunning) {
             animationId = requestAnimationFrame(gameLoop);
@@ -626,9 +660,9 @@
         if (!gameState.isRunning || gameState.isGameOver) return;
 
         gameState.isPaused = !gameState.isPaused;
-
+        
         const pauseOverlay = document.getElementById('pauseOverlay');
-
+        
         if (gameState.isPaused) {
             if (pauseOverlay) pauseOverlay.classList.add('active');
         } else {
@@ -752,26 +786,24 @@
     }
 
     // ============================================
-    // CANVAS RESIZING (HEIGHT-BASED)
+    // CANVAS RESIZING (FIXED)
     // ============================================
     function resizeCanvas() {
         const wrapper = document.querySelector('.game-wrapper');
         if (!wrapper) return;
 
-        // Get available height from wrapper
+        // Get available dimensions
         const wrapperHeight = wrapper.clientHeight;
         const wrapperWidth = wrapper.clientWidth;
 
-        // Calculate block size based on height (priority)
+        // Calculate block size using BOTH constraints
         const blockSizeByHeight = Math.floor(wrapperHeight / ROWS);
-
-        // Also check width constraint
         const blockSizeByWidth = Math.floor(wrapperWidth / COLS);
-
-        // Use the smaller one
+        
+        // Use the smaller one to ensure fit
         const blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
         BLOCK_SIZE = Math.max(10, blockSize);
-        NEXT_BLOCK_SIZE = Math.max(15, Math.floor(BLOCK_SIZE * 0.8));
+        NEXT_BLOCK_SIZE = Math.max(12, Math.floor(BLOCK_SIZE * 0.6));
 
         // Handle device pixel ratio
         const dpr = window.devicePixelRatio || 1;
@@ -796,8 +828,6 @@
         // Redraw
         drawBoard();
         drawNextPiece();
-        
-        // Force UI update
         updateUI();
     }
 
