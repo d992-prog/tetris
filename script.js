@@ -742,37 +742,33 @@
     }
 
     // ============================================
-    // CANVAS RESIZING (FIXED - NO NEXT BLOCK)
+    // CANVAS RESIZING (SAFE - HARD LIMIT)
     // ============================================
     function resizeCanvas() {
         const canvas = document.getElementById('gameCanvas');
         if (!canvas) return;
 
-        // Get UI elements
-        const header = document.querySelector('.game-header');
-        const info = document.querySelector('.info-bar');
-        const controls = document.querySelector('.controls-bar');
-
         // Get real viewport height (Safari fix)
-        const totalHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-        // Calculate used height
-        const usedHeight = (header ? header.offsetHeight : 0) +
-                          (info ? info.offsetHeight : 0) +
-                          (controls ? controls.offsetHeight : 0);
+        // Reserve guaranteed space for UI (header + info + controls + margins)
+        const reservedHeight = 110;
 
-        // Available height for canvas (with 6px margin)
-        const availableHeight = totalHeight - usedHeight - 6;
-
-        // Available width
+        // Available dimensions
+        const availableHeight = vh - reservedHeight;
         const availableWidth = window.innerWidth - 10;
 
-        // Calculate block size using BOTH constraints
-        const blockSizeByHeight = Math.floor(availableHeight / ROWS);
-        const blockSizeByWidth = Math.floor(availableWidth / COLS);
+        // Calculate block size
+        let blockSize = Math.floor(Math.min(availableHeight / ROWS, availableWidth / COLS));
 
-        // Use the smaller one to ensure fit
-        const blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
+        // HARD LIMIT - prevents overflow
+        const maxHeight = availableHeight;
+        const calculatedHeight = blockSize * ROWS;
+
+        if (calculatedHeight > maxHeight) {
+            blockSize = Math.floor(maxHeight / ROWS);
+        }
+
         BLOCK_SIZE = Math.max(10, blockSize);
 
         // Handle device pixel ratio
